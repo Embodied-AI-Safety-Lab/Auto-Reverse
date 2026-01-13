@@ -76,7 +76,7 @@ Project_Root/
 ```python
 # Tools/config.py
 
-# 1. 设置 JADX 的相对路径 (如果未更新版本，保持默认即可)
+# 1. 设置 JADX 的相对路径 (https://github.com/skylot/jadx 下载即可)
 JADX_PATH = os.path.join(CURRENT_DIR, "jadx-1.5.3", "bin", "jadx.bat")
 
 # 2. 确认 ADB 和 AAPT 命令 (如果已在环境变量中，保持默认即可)
