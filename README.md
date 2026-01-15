@@ -1,140 +1,112 @@
-# Auto-Reverse-Engine: 自动化 APK 查壳与反编译引擎
+# Embodied AI APK 自动化逆向与脱壳分析系统
 
-**Auto-Reverse-Engine** 是一个专为 **具身智能（Embodied AI）安全研究** 设计的 Android 自动化逆向流水线。它能够批量扫描 APK 文件，智能识别加固壳、开发框架（如 Flutter）以及修改版（Mod），并根据类型自动执行脱壳、反编译或归档操作。
+**适用场景**: 具身智能（机器人、无人机、服务机器人）Android 应用的批量安全性分析。
 
-## 主要功能
+## 项目简介
 
-* **智能查壳与分类**：
-* **加壳应用**：识别 360、腾讯、梆梆等主流加固，自动启动真机脱壳流程。
-* **框架应用**：识别 Flutter、React Native、Unity，自动归档（跳过耗时反编译）。
-* **Mod 修改版**：识别常见破解/修改版特征，单独分类处理。
+这是一个高度自动化的 Android 逆向工程流水线。它能够自动扫描、分类、并在必要时对 APK 进行脱壳处理。
 
+## 核心功能
 
-* **自动化脱壳 (Unpacking)**：
-* 通过 ADB 控制 Root 真机自动安装、运行、提取内存中的 DEX 文件。
-* 自动处理 `hyhzz` 脱壳产物并拉取至本地。
+### 1. 混合检测引擎 (Scanner)
 
+采用 **“静态指纹 + 动态探测”** 双重机制，精准度远超普通查壳工具。
 
-* **源码重组**：
-* 将脱壳后的 DEX 代码与原 APK 的资源文件（Resources/Manifest）自动合并，生成可分析的完整项目。
+- **Tier 1 (行业规则库)**: 内置 `rules.json`，识别 DJI SecNeo、AppGuard、梆梆定制版、360 加固等行业专用壳。
+- **Tier 2 (Mod 识别)**: 能够识别 AndroidRepublic、MT Manager 等破解/注入特征。
+- **Tier 3 (APKiD 兜底)**: 集成 APKiD v3.0，识别 DexGuard、AESObfuscator 等虚拟化混淆。
+- **智能过滤**: 自动识别 Flutter/React Native 框架，并自动忽略 ProGuard 等非破坏性混淆。
 
+### 2. 自动化脱壳流水线 (Unpacker)
 
-* **纯净与安全模式**：
-* **中文文件名支持**：自动将 APK 复制为纯英文临时文件处理，解决 ADB/JADX 乱码问题。
-* **环境自洁**：任务前后自动清理手机端残留数据，防止分析干扰。
+基于检测结果的智能分流策略：
 
-
-
----
-
-## 环境要求
-
-在运行脚本前，请确保满足以下条件：
-
-### 1. 硬件环境
-
-* 一台 **已 Root** 的 Android 真机或模拟器。
-* **关键要求**：设备需配置好脱壳环境（确保 APP 运行时会在 `/data/data/<包名>/hyhzz/` 目录下生成脱壳文件）。
-
-### 2. 软件依赖
-
-* **Python 3.x**
-* **ADB (Android Debug Bridge)**：需配置到系统环境变量 `PATH` 中。
-* **AAPT (Android Asset Packaging Tool)**：需配置到系统环境变量 `PATH` 中（通常在 Android SDK build-tools 下）。
-* **JADX**：需要安装 JADX，并记录其 `bin/jadx.bat` (Windows) 的相对路径。
-
----
+- **Packed (有壳)**: 自动安装至真机 -> 运行 Monkey 触发壳逻辑 -> 内存 Dump DEX -> 修复 DEX 头 -> JADX 反编译。
+- **Mod (破解版)**: 跳过脱壳机（防止反检测），直接调用 JADX 反编译，方便分析破解/注入逻辑。
+- **Framework (框架)**: 识别 Flutter/Unity/RN 应用，自动归档，不进行无效的 DEX 反编译。
+- **Native (原生)**: 直接进行静态反编译。
 
 ## 目录结构
 
-建议的项目文件结构如下：
+确保你的文件放置如下：
 
-```text
-Project_Root/
+Plaintext
+
+```
+Project_Root\                # [项目根目录]
 ├── Dataset/
-│   └── Raw_APKs/           <-- [输入] 把下载的 APK 放在这里 (支持中文名)
-│
+│   ├── Raw_APKs/              # [输入] 把 APK 放在这里
+│   └── scan_report.csv        # [输出] 扫描生成的体检报告
+├── Results/                   # [输出] 最终反编译结果
+│   ├── drones/                # 按类别分类
+│   ├── robots/
+│   └── Framework/             # Flutter/RN/Unity 归档目录
+├── Scripts/                   # [脚本目录]
+│   ├── quick_scan_packers.py  # 检测脚本 
+│   └── automated_unpack.py    # 自动化脱壳脚本
 ├── Tools/
-│   ├── config.py           <-- [配置] 路径配置文件
-│   ├── rules.json          <-- [规则] 查壳与框架指纹库
-│   └── jadx-x.x.x/         <-- (可选) JADX 工具目录
-│
-├── Scripts/
-│   ├──  auto_reverse_engine.py  <-- [主程序] 启动脚本
-│   └── quick_scan_packers.py   <-- [模块] 扫描引擎
-│
-└── README.md
-
+│   ├── rules.json             # 核心特征库 (必须存在)
+│   └── config.py              # 路径配置文件 (可选，代码有默认值)
+└── README.md                  # 说明文档
 ```
 
----
+## 环境依赖
 
-## 配置指南
+在运行之前，请确保已安装以下工具并配置好环境变量：
 
-在使用前，请打开 `Tools/config.py` 并根据你的电脑环境修改以下路径：
+1. **Python 3.8+**
+2. **APKiD** (v3.0+): `pip install apkid` (用于兜底查壳)
+3. **JADX**: 需配置 `jadx` 命令到环境变量 (用于反编译)
+4. **ADB**: Android Debug Bridge (用于连接手机)
+5. **一台 Root 过的 Android 手机**: 用于 `Packed` 类型应用的自动化脱壳。
 
-```python
-# Tools/config.py
+## 配置检查 (Tools/rules.json)
 
-# 1. 设置 JADX 的相对路径 (https://github.com/skylot/jadx 下载即可)
-JADX_PATH = os.path.join(CURRENT_DIR, "jadx-1.5.3", "bin", "jadx.bat")
+请确保 `Tools\rules.json` 文件已创建并包含了最新的指纹数据（包含 DJI SecNeo, AppGuard, AndroidRepublic 等特征）。
 
-# 2. 确认 ADB 和 AAPT 命令 (如果已在环境变量中，保持默认即可)
-AAPT_COMMAND = "aapt"
-ADB_COMMAND = "adb"
+## 使用指南
 
-```
+### 第一步：扫描与分类
 
----
+进入脚本目录并运行检测脚本：
 
-## 使用方法
-
-1. 连接手机至电脑，确保 `adb devices` 能看到设备。
-2. 将待分析的 APK 文件放入 `Dataset/Raw_APKs` 文件夹。
-3. 在终端（CMD/PowerShell）运行主程序：
-
-```bash
-python auto_reverse_engine.py
+Bash
 
 ```
-
-脚本将按照以下流程自动工作：
-
-* **扫描** -> **重命名(安全模式)** -> **分类** -> **脱壳(如有必要)** -> **反编译** -> **清理**。
-
----
-
-## 输出产物说明
-
-运行结束后，结果会保存在 `Dataset` 目录下的不同文件夹中：
-
-| 文件夹名称              | 说明                                                     |
-| ----------------------- | -------------------------------------------------------- |
-| **Decompiled_Native**   | **原生/库应用**。未加壳的 APP。                          |
-| **Decompiled_Unpacked** | **脱壳后应用**。原本有壳，经脚本自动脱壳并修复后的产物。 |
-| **Decompiled_Mods**     | **修改版应用**。被检测为 Mod/Hack 的应用。               |
-| **Framework_Apps**      | **框架应用** (Flutter/React Native)。                    |
-
-### `Decompiled_Unpacked` 内部结构详情
-
-针对脱壳后的应用，文件夹结构如下：
-
-```text
-AppName_PackageName/
-├── dumped_dex/      <-- [证据] 从手机内存拉取的原始 DEX 文件 (可拖入 JADX 分析)
-└── source_code/     <-- [成品] JADX 反编译后的 Java 源码 + 原始资源文件
-
+python quick_scan_packers.py
 ```
 
----
+- **输出**: 屏幕打印检测表格，并在 `Dataset/` 下生成 `scan_report.csv`。
+- **判定标准**:
+  - `YES`: 包含加固、虚拟化混淆 (DexGuard) 或 恶意注入 (Mod)。
+  - `NO`: 原生代码或仅包含普通混淆 (ProGuard)。
 
-## 规则库定制
+### 第二步：自动化处理
 
-你可以编辑 `Tools/rules.json` 来添加新的检测规则：
+确认手机已连接并开启 USB 调试，然后运行：
 
-* **type: "packer"** -> 触发自动脱壳。
-* **type: "framework"** -> 触发归档跳过。
-* **type: "mod"** -> 存入 Mod 专用目录。
+Bash
 
----
+```
+python automated_unpack.py
+```
 
+- 脚本会自动读取 `../Dataset/Raw_APKs` 下的文件。
+- **有壳应用 (Packed)** 会自动在手机上启动、脱壳、拉取 DEX 并修复。
+- **结果**会保存在 `../Results/` 目录下。
+
+## 决策逻辑矩阵
+
+| **检测类型**  | **典型特征 (Signature/APKiD)**              | **判定 (Shell?)** | **自动化动作**                             |
+| ------------- | ------------------------------------------- | ----------------- | ------------------------------------------ |
+| **Packer**    | `libSecShell.so`, `libjiagu.so`, `DexGuard` | **YES**           | 📲 真机脱壳 -> 修复 -> 反编译               |
+| **Mod**       | `libar-checker.so`, `MT_BIN`                | **YES**           | 📄 直接 JADX 反编译 (分析注入逻辑)          |
+| **Framework** | `libflutter.so`, `libreactnative.so`        | **NO**            | 🗄️ 归档至 `Results/Framework/` (需专用工具) |
+| **Native**    | 无特征, 或 `ProGuard`                       | **NO**            | 📄 直接 JADX 反编译                         |
+
+## 免责声明
+
+本项目仅用于具身智能领域的安全研究与学术分析。
+
+- 请勿用于分析非法软件或进行商业破解。
+- 对于分析 Mod (破解版) 应用时可能触发的安全风险（如后门），请在沙箱或专用测试机中运行。

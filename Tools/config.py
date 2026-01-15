@@ -10,10 +10,6 @@ PROJECT_ROOT = os.path.dirname(CURRENT_DIR)              # 项目根目录
 # 输入输出路径
 APK_DIR = os.path.join(PROJECT_ROOT, "Dataset", "Raw_APKs")
 OUTPUT_DIR = os.path.join(PROJECT_ROOT, "Dataset")
-FRAME_DIR = os.path.join(OUTPUT_DIR, "Frame_Apps")
-DECRYPTED_MODS = os.path.join(OUTPUT_DIR, "Decompiled_Mods")
-DECOMPILED_DIR = os.path.join(OUTPUT_DIR, "Decompiled_Native")
-OUT_UNPACKED_DIR = os.path.join(OUTPUT_DIR, "Decompiled_Unpacked")
 DECRYPTED_TEMP = os.path.join(OUTPUT_DIR, "Temp_Decrypted")
 # ================= 工具命令配置 =================
 

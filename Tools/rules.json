@@ -1,248 +1,218 @@
 {
-    "360加固 (Qihoo)": {
-        "type": "packer",
-        "libs": [
-            "libjiagu.so",
-            "libjiagu_x86.so",
-            "libjiagu_a64.so",
-            "libprotectClass.so",
-            "libjiagu_ls.so",
-            "assets/jiagu.dat",
-            "libjiagu_art.so"
-        ]
+    "Packers": {
+        "360加固 (Qihoo)": {
+            "files": [
+                "libjiagu.so",
+                "libjiagu_x86.so",
+                "libjiagu_a64.so",
+                "libprotectClass.so",
+                "libjiagu_ls.so",
+                "assets/jiagu.dat",
+                "libjiagu_art.so"
+            ]
+        },
+        "腾讯乐固 (Legu)": {
+            "files": [
+                "libshell.so",
+                "libtup.so",
+                "liblegu.so",
+                "libshella.so",
+                "libshellx.so",
+                "libmix.so",
+                "libmixz.so",
+                "assets/libshell.so",
+                "assets/0OO00l"
+            ]
+        },
+        "腾讯御安全 (Yuanquan)": {
+            "files": [
+                "libtprt.so",
+                "libtomb.so",
+                "libtofa.so"
+            ]
+        },
+        "梆梆企业版 (BangcleProtection)": {
+            "files": [
+                "libsecexe.so",
+                "libsecmain.so",
+                "libBangcle.so",
+                "libbangcle.so",
+                "secData0.jar",
+                "assets/bangcleplugin"
+            ]
+        },
+        "梆梆个人版 (Bangcle SecShell)": {
+            "files": [
+                "libDexHelper.so",
+                "libdexhelper.so",
+                "libSecShell.so",
+                "libSecShell_x86.so"
+            ]
+        },
+        "爱加密 (Ijiami)": {
+            "files": [
+                "libexec.so",
+                "libexecmain.so",
+                "ijiami.dat",
+                "libijiami.so",
+                "assets/ijiami.dat",
+                "ijiami.ajm",
+                "assets/af.bin"
+            ]
+        },
+        "百度加固 (Baidu)": {
+            "files": [
+                "libbaiduprotect.so",
+                "assets/baiduprotect1.jar",
+                "assets/baiduprotect.jar"
+            ]
+        },
+        "阿里聚安全 (Ali)": {
+            "files": [
+                "libsgmain.so",
+                "libsgsecuritybody.so",
+                "libmobisec.so",
+                "libfakejni.so",
+                "libsgavmp.so",
+                "libjaq.so",
+                "libzfix.so"
+            ]
+        },
+        "网易易盾 (Netease)": {
+            "files": [
+                "libnesec.so",
+                "libnhp.so",
+                "libu8_ms_sdk.so",
+                "libips.so",
+                "assets/nesec.jar",
+                "libnsh.so"
+            ]
+        },
+        "UPX (压缩壳)": {
+            "files": [
+                "libupx.so"
+            ]
+        },
+        "DexGuard (Guardsquare)": {
+            "files": [
+                "assets/dexguard-metadata",
+                "assets/dexguard.dat",
+                "libdexguard.so"
+            ]
+        },
+        "AppGuard (Bluebox/Robot)": {
+            "files": [
+                "libAppGuard.so",
+                "libAppGuard-x86.so",
+                "assets/appguard"
+            ]
+        },
+        "顶象 (DingXiang)": {
+            "files": [
+                "libx3g.so",
+                "libdx-risk.so",
+                "libdx-cxx.so"
+            ]
+        },
+        "几维安全 (Kiwi)": {
+            "files": [
+                "libkwscmm.so",
+                "libkwscr.so",
+                "libkwslinker.so"
+            ]
+        },
+        "APKProtect": {
+            "files": [
+                "libapkprotect.so"
+            ]
+        },
+        "StringFog (代码混淆)": {
+            "files": [
+                "libStringFogJNI.so"
+            ]
+        },
+        "DJI Security (SecNeo)": {
+            "files": [
+                "libDJIFlySafeCore.so",
+                "libFlyForbid.so",
+                "libSecShell.so",
+                "secData0.jar"
+            ]
+        }
     },
-    "腾讯乐固 (Legu)": {
-        "type": "packer",
-        "libs": [
-            "libshell.so",
-            "libtup.so",
-            "liblegu.so",
-            "libshella.so",
-            "libshellx.so",
-            "libmix.so",
-            "libmixz.so",
-            "assets/libshell.so",
-            "assets/0OO00l"
-        ]
+    "Mods": {
+        "AndroidRepublic (VIP/Mod)": {
+            "files": [
+                "libandroidrepublic.so",
+                "libTeamAR.so",
+                "libkmod.so",
+                "assets/ar_toast.png"
+            ]
+        },
+        "BlackMod (Hack)": {
+            "files": [
+                "libblackmod.so",
+                "libbnm.so"
+            ]
+        },
+        "PlatinMods": {
+            "files": [
+                "libpmt.so",
+                "libPlatinMods.so"
+            ]
+        },
+        "通用 Mod 菜单 (Generic Menu)": {
+            "files": [
+                "libImGui.so",
+                "libimgui.so",
+                "libCanvas.so",
+                "libKittyMemory.so",
+                "libSandBox.so"
+            ]
+        },
+        "MT Manager": {
+            "files": [
+                "META-INF/MT_BIN",
+                "assets/bin/Data/Managed/MT.dll"
+            ]
+        },
+        "NP Manager": {
+            "files": [
+                "assets/np_manager"
+            ]
+        },
+        "Signature Killer": {
+            "files": [
+                "META-INF/KILLER_BUNDLE"
+            ]
+        }
     },
-    "梆梆企业版 (BangcleProtection)": {
-        "type": "packer",
-        "libs": [
-            "libsecexe.so",
-            "libsecmain.so",
-            "libBangcle.so",
-            "libbangcle.so"
-        ],
-        "files": [
-            "secData0.jar",
-            "assets/bangcleplugin"
-        ]
-    },
-    "梆梆个人版 (Bangcle SecShell)": {
-        "type": "packer",
-        "libs": [
-            "libDexHelper.so",
-            "libdexhelper.so",
-            "libSecShell.so",
-            "libSecShell_x86.so"
-        ]
-    },
-    "爱加密 (Ijiami)": {
-        "type": "packer",
-        "libs": [
-            "libexec.so",
-            "libexecmain.so",
-            "ijiami.dat",
-            "libijiami.so",
-            "assets/ijiami.dat",
-            "ijiami.ajm",
-            "assets/af.bin"
-        ]
-    },
-    "百度加固 (Baidu)": {
-        "type": "packer",
-        "libs": [
-            "libbaiduprotect.so",
-            "assets/baiduprotect1.jar",
-            "assets/baiduprotect.jar"
-        ]
-    },
-    "阿里聚安全 (Ali)": {
-        "type": "packer",
-        "libs": [
-            "libsgmain.so",
-            "libsgsecuritybody.so",
-            "libmobisec.so",
-            "libfakejni.so",
-            "libsgavmp.so",
-            "libjaq.so",
-            "libzfix.so"
-        ]
-    },
-    "网易易盾 (Netease)": {
-        "type": "packer",
-        "libs": [
-            "libnesec.so",
-            "libnhp.so",
-            "libu8_ms_sdk.so",
-            "libips.so",
-            "assets/nesec.jar",
-            "libnsh.so"
-        ]
-    },
-    "UPX (压缩壳)": {
-        "type": "packer",
-        "libs": [
-            "libupx.so"
-        ]
-    },
-    "DexGuard (Guardsquare)": {
-        "type": "packer",
-        "libs": [
-            "assets/dexguard-metadata",
-            "assets/dexguard.dat",
-            "libdexguard.so"
-        ]
-    },
-    "AppGuard (Bluebox)": {
-        "type": "packer",
-        "libs": [
-            "libAppGuard.so",
-            "libAppGuard-x86.so"
-        ]
-    },
-    "腾讯御安全 (Yuanquan)": {
-        "type": "packer",
-        "libs": [
-            "libtprt.so",
-            "libtomb.so",
-            "libtofa.so"
-        ]
-    },
-    "顶象 (DingXiang)": {
-        "type": "packer",
-        "libs": [
-            "libx3g.so",
-            "libdx-risk.so",
-            "libdx-cxx.so"
-        ]
-    },
-    "几维安全 (Kiwi)": {
-        "type": "packer",
-        "libs": [
-            "libkwscmm.so",
-            "libkwscr.so",
-            "libkwslinker.so"
-        ]
-    },
-    "APKProtect": {
-        "type": "packer",
-        "libs": [
-            "libapkprotect.so"
-        ]
-    },
-    "StringFog (代码混淆)": {
-        "type": "obfuscator",
-        "libs": [
-            "libStringFogJNI.so"
-        ]
-    },
-    "DJI Security (大疆自研)": {
-        "type": "packer",
-        "libs": [
-            "libDJIFlySafeCore.so",
-            "libFlyForbid.so"
-        ]
-    },
-    "Flutter Framework": {
-        "type": "framework",
-        "libs": [
-            "libflutter.so",
-            "libapp.so",
-            "flutter_assets/"
-        ]
-    },
-    "React Native": {
-        "type": "framework",
-        "libs": [
-            "libreactnativejni.so",
-            "libhermes.so",
-            "libjsc.so",
-            "assets/index.android.bundle"
-        ]
-    },
-    "Unity 3D": {
-        "type": "framework",
-        "libs": [
-            "libunity.so",
-            "libmain.so",
-            "assets/bin/Data/"
-        ]
-    },
-    "Xamarin / Mono": {
-        "type": "framework",
-        "libs": [
-            "libmonosgen-2.0.so",
-            "libmonodroid.so",
-            "assemblies/"
-        ]
-    },
-    "ROS (机器人操作系统)": {
-        "type": "library",
-        "libs": [
-            "libros.so",
-            "libroscpp.so",
-            "librosconsole.so"
-        ]
-    },
-    "OpenCV (机器视觉)": {
-        "type": "library",
-        "libs": [
-            "libopencv_java3.so",
-            "libopencv_java4.so",
-            "libopencv_info.so"
-        ]
-    },
-    "TensorFlow Lite (端侧AI)": {
-        "type": "library",
-        "libs": [
-            "libtensorflowlite.so",
-            "libtensorflowlite_jni.so"
-        ]
-    },
-    "AndroidRepublic (VIP/Mod)": {
-        "type": "mod",
-        "libs": [
-            "libandroidrepublic.so",
-            "libTeamAR.so",
-            "libkmod.so"
-        ],
-        "files": [
-            "assets/ar_toast.png"
-        ]
-    },
-    "BlackMod (Hack)": {
-        "type": "mod",
-        "libs": [
-            "libblackmod.so",
-            "libbnm.so"
-        ]
-    },
-    "PlatinMods": {
-        "type": "mod",
-        "libs": [
-            "libpmt.so",
-            "libPlatinMods.so"
-        ]
-    },
-    "通用 Mod 菜单 (Generic Menu)": {
-        "type": "mod",
-        "libs": [
-            "libImGui.so",
-            "libimgui.so",
-            "libCanvas.so",
-            "libKittyMemory.so",
-            "libSandBox.so"
-        ]
+    "Frameworks": {
+        "Flutter Framework": {
+            "files": [
+                "libflutter.so",
+                "libapp.so"
+            ]
+        },
+        "React Native": {
+            "files": [
+                "libreactnativejni.so",
+                "libhermes.so",
+                "libjsc.so",
+                "assets/index.android.bundle"
+            ]
+        },
+        "Unity 3D": {
+            "files": [
+                "libunity.so",
+                "libmain.so"
+            ]
+        },
+        "Xamarin / Mono": {
+            "files": [
+                "libmonosgen-2.0.so",
+                "libmonodroid.so"
+            ]
+        }
     }
 }

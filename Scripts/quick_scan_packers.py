@@ -1,17 +1,17 @@
 import os
 import sys
 import zipfile
-import re
 import json
 import csv
+import subprocess
 from datetime import datetime
 
-# ==================== 1. 环境配置 ====================
+# ==================== 1. 环境与路径配置 ====================
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_dir)
 sys.path.append(project_root)
 
-# 默认配置 (如果没有 config.py)
+# 默认路径
 DEFAULT_APK_DIR = os.path.join(project_root, "Dataset", "Raw_APKs")
 DEFAULT_RULES_PATH = os.path.join(project_root, "Tools", "rules.json")
 DEFAULT_OUTPUT_DIR = os.path.join(project_root, "Dataset")
@@ -28,180 +28,201 @@ except ImportError:
 
 OUTPUT_CSV = os.path.join(OUTPUT_DIR, "scan_report.csv")
 
-# ==================== 2. 核心检测引擎 ====================
-class AppScanner:
-    def __init__(self):
-        self.rules = self._load_rules()
+# ==================== 2. 规则加载器 ====================
+class RuleLoader:
+    def __init__(self, path):
+        self.rules = self._load(path)
+    
+    def _load(self, path):
+        if not os.path.exists(path):
+            print(f"[Fatal] 找不到规则文件: {path}")
+            print("请创建 Tools/rules.json，否则无法进行静态特征匹配。")
+            return {}
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                print(f"[Init] 成功加载规则库: {len(data.get('Packers', {}))} Packers, {len(data.get('Mods', {}))} Mods")
+                return data
+        except Exception as e:
+            print(f"[Error] 规则文件 JSON 格式错误: {e}")
+            return {}
+
+    def scan_zip_entries(self, zip_file_list):
+        """
+        遍历 ZIP 内的所有文件，按优先级匹配规则
+        优先级: Packers > Mods > Frameworks
+        返回: (Is_Hit, Type, Name, Category)
+        """
+        if not self.rules: return False, "Native", "Unknown", "Native"
+
+        # 1. 优先检查 Packers (必须脱壳)
+        if "Packers" in self.rules:
+            for name, data in self.rules["Packers"].items():
+                for sig in data.get("files", []):
+                    # 精确匹配 or 路径匹配
+                    if any(sig == f.split('/')[-1] or ("/" in sig and sig in f) for f in zip_file_list):
+                        return True, "Packed", name, "Packers"
+
+        # 2. 其次检查 Mods (视为有壳/修改)
+        if "Mods" in self.rules:
+            for name, data in self.rules["Mods"].items():
+                for sig in data.get("files", []):
+                    if any(sig == f.split('/')[-1] or ("/" in sig and sig in f) for f in zip_file_list):
+                        return True, "Mod", name, "Mods"
+
+        # 3. 最后检查 Frameworks (无壳，但记录类型)
+        if "Frameworks" in self.rules:
+            for name, data in self.rules["Frameworks"].items():
+                for sig in data.get("files", []):
+                    if any(sig == f.split('/')[-1] or ("/" in sig and sig in f) for f in zip_file_list):
+                        return True, "Framework", name, "Frameworks"
         
-        # 白名单 (针对 V25 算法)
-        self.whitelist_names = {
-            'bin', 'src', 'res', 'lib', 'libs', 'raw', 'xml', 'js', 'css', 
-            'img', 'map', 'lua', 'html', 'data', 'conf', 'cfg', 'db', 'sql',
-            'p12', 'pem', 'crt', 'key', 'id', 'v1', 'v2', 'v3', 'x86', 'arm',
-            'www', 'public', 'assets', 'meta', 'inf', 'opt', 'etc', 'usr',
-            'font', 'fonts', 'icon', 'icons', 'sound', 'sounds', 'video',
-            'google', 'facebook', 'amazon', 'unity', 'vuforia', 'aliyun',
-            'model', 'models', 'tflite', 'onnx', 'weights', 'ros', 'slam', 
-            'dexopt', 'odex', 'oat' # 强制忽略优化文件
-        }
+        return False, "Native", "Clean", "Native"
 
-    def _load_rules(self):
-        rules = {}
-        if os.path.exists(RULES_PATH):
-            try:
-                with open(RULES_PATH, 'r', encoding='utf-8') as f:
-                    rules = json.load(f)
-                print(f"[Init] 规则库加载成功: {RULES_PATH}")
-            except: pass
-        else:
-            print(f"[Fatal] 找不到 rules.json")
-            sys.exit(1)
-        return rules
+# ==================== 3. APKiD 调用模块 ====================
+class ApkidWrapper:
+    @staticmethod
+    def scan(apk_path):
+        """调用 APKiD 并返回 JSON 数据"""
+        try:
+            # --typing none: 专注查壳，速度最快
+            cmd = ["apkid", "-j", "--typing", "none", apk_path]
+            
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, startupinfo=startupinfo)
+            
+            if result.returncode == 0 and result.stdout.strip():
+                return json.loads(result.stdout)
+        except: pass
+        return {}
 
-    def scan(self, apk_path):
+# ==================== 4. 智能检测核心 ====================
+class SmartDetector:
+    def __init__(self, rules_path):
+        self.rule_loader = RuleLoader(rules_path)
+
+    def check(self, apk_path):
+        """
+        返回: (Has_Shell: str, Type: str, Detail: str)
+        Has_Shell: "YES" / "NO"
+        Type: Packed / Mod / Framework / Native
+        """
+        # [Step 1] 静态规则匹配 (基于 rules.json)
         try:
             with zipfile.ZipFile(apk_path, 'r') as zf:
                 file_list = zf.namelist()
-                all_files_str = "\n".join(file_list)
-                all_filenames_lower = set(f.split('/')[-1].lower() for f in file_list)
+                is_hit, r_type, r_name, r_cat = self.rule_loader.scan_zip_entries(file_list)
                 
-                # --- 1. Framework 优先 ---
-                # Flutter (Strict)
-                if any(re.search(r"lib/[^/]+/libflutter\.so", f) for f in file_list):
-                    return "Framework", "Flutter"
-
-                # React Native
-                if "assets/index.android.bundle" in all_files_str: return "Framework", "React Native"
-                if "libreactnativejni.so" in all_filenames_lower: return "Framework", "React Native"
-
-                # Unity / Xamarin
-                if "libunity.so" in all_filenames_lower: return "Framework", "Unity 3D"
-                if "libmonodroid.so" in all_filenames_lower: return "Framework", "Xamarin/Mono"
-
-                # --- 2. 规则匹配 (Packer & Mod) ---
-                for p_name, rule_data in self.rules.items():
-                    rule_type = rule_data.get("type", "packer").capitalize()
-                    if rule_type == "Packer": rule_type = "Packed"
-                    
-                    # Libs 匹配
-                    if "libs" in rule_data:
-                        for sig in rule_data["libs"]:
-                            if sig.lower() in all_filenames_lower:
-                                return rule_type, f"{p_name} (Lib: {sig})"
-                    
-                    # Files 匹配
-                    if "files" in rule_data:
-                        for sig in rule_data["files"]:
-                            if sig in all_files_str:
-                                # [核心修复]：强制跳过 dexopt 相关的特征
-                                if "dexopt" in sig.lower(): 
-                                    continue 
-                                return rule_type, f"{p_name} (File: {sig})"
-
-                # --- 3. DexGuard 严格启发式 (V25/26 算法) ---
-                is_obf, reason = self.detect_dexguard_strict(file_list)
-                if is_obf:
-                    return "Packed", reason
-
-                # --- 4. 兜底检测 ---
-                try:
-                    if "classes.dex" in file_list:
-                        info = zf.getinfo("classes.dex")
-                        if info.file_size < 200 * 1024:
-                             if any(f.endswith('.so') for f in file_list):
-                                if "libunity.so" not in all_filenames_lower:
-                                    return "Packed", f"未知壳 (Dex极小: {info.file_size}B)"
-                except: pass
+                if is_hit:
+                    # 如果是 Packer 或 Mod -> YES
+                    if r_cat in ["Packers", "Mods"]:
+                        return "YES", r_type, f"Rule: {r_name}"
+                    # 如果是 Framework -> NO (但在 Detail 里记录)
+                    if r_cat == "Frameworks":
+                        # 注意：这里我们暂定为 NO，但为了防止 Framework 实际上被 APKiD 查出有壳，
+                        # 我们可以选择直接返回，或者继续跑 APKiD。
+                        # 策略：为了速度，如果命中 Framework 且没命中 Packer，通常就是无壳。
+                        return "NO", r_type, f"Framework: {r_name}"
 
         except zipfile.BadZipFile:
-            return "Error", "APK损坏"
+            return "NO", "Error", "Bad Zip"
         except Exception as e:
-            return "Error", str(e)
+            return "NO", "Error", str(e)
 
-        return "Native", "Unpacked"
-
-    def detect_dexguard_strict(self, file_list):
-        """
-        寻找 Skydio 特征：大量无后缀的短乱码文件
-        """
-        suspicious_count = 0
-        assets_total = 0
-        
-        for f in file_list:
-            parts = f.split('/')
+        # [Step 2] APKiD 深度扫描 (兜底)
+        # 如果静态规则完全没命中 (Native)，或者刚才只命中了 Framework (想二次确认可以放开，但这里暂且认为Native需要查)
+        apkid_data = ApkidWrapper.scan(apk_path)
+        if apk_path in apkid_data:
+            matches = apkid_data[apk_path]
             
-            # 只分析 assets 一级目录
-            if len(parts) == 2 and parts[0] == 'assets':
-                name = parts[1]
-                if not name: continue
+            # A. Packer -> YES
+            if "packer" in matches:
+                return "YES", "Packed", f"APKiD: {matches['packer'][0]}"
+
+            # B. Anti-Debug -> YES
+            if "anti_debug" in matches:
+                return "YES", "Packed", "APKiD: Anti-Debug Detected"
+
+            # C. Obfuscator -> 智能过滤
+            if "dex_obfuscator" in matches:
+                obfuscators = matches["dex_obfuscator"]
+                real_shells = []
+                for obf in obfuscators:
+                    # DexGuard / AESObfuscator -> YES
+                    if "DexGuard" in obf or "AESObfuscator" in obf:
+                        real_shells.append(obf)
                 
-                # 白名单
-                if name.lower() in self.whitelist_names: continue
-                # [新增] 再次过滤 dexopt 文件夹
-                if "dexopt" in name.lower(): continue
+                if real_shells:
+                    return "YES", "Packed", f"APKiD: {', '.join(real_shells)}"
+                else:
+                    # ProGuard / R8 -> NO
+                    return "NO", "Native", f"Clean (Ignored: {', '.join(obfuscators)})"
 
-                assets_total += 1
-                
-                # 严苛条件：1-3位，纯字母数字，【无后缀】
-                if 1 <= len(name) <= 3 and re.match(r'^[a-zA-Z0-9]+$', name):
-                    if '.' not in name:
-                        suspicious_count += 1
+        # [Step 3] 没任何发现 -> NO
+        return "NO", "Native", "Clean"
 
-        # 阈值：数量 > 15 且 占比 > 50%
-        if suspicious_count > 15:
-            ratio = suspicious_count / assets_total
-            if ratio > 0.5:
-                return True, f"DexGuard/强混淆 (碎片文件 > 15, 密度 {int(ratio*100)}%)"
-        
-        return False, ""
-
-# ==================== 3. 主程序 ====================
+# ==================== 5. 主程序 ====================
 if __name__ == "__main__":
     print("="*60)
-    print(f"APK 检测引擎 (V26.0 DexOpt 修复版)")
-    print(f"输入: {APK_DIR}")
+    print(f"APK 壳检测器")
+    print(f"规则: {RULES_PATH}")
+    print(f"目录: {APK_DIR}")
     print("="*60)
 
     if not os.path.exists(APK_DIR):
-        print(f"[ERROR] 目录不存在: {APK_DIR}")
+        print("[ERROR] APK 目录不存在")
         exit(1)
 
-    apk_tasks = [os.path.join(r, f) for r, d, fs in os.walk(APK_DIR) for f in fs if f.lower().endswith(".apk") and "install_" not in f]
+    apk_tasks = []
+    for root, dirs, files in os.walk(APK_DIR):
+        for f in files:
+            if f.lower().endswith(".apk") and not f.startswith("._"):
+                apk_tasks.append(os.path.join(root, f))
 
-    print(f"[队列] {len(apk_tasks)} 个任务")
-    print("-" * 100)
-    print(f"{'文件名':<35} | {'类型':<12} | {'详情'}")
-    print("-" * 100)
-
-    scanner = AppScanner()
+    print(f"[队列] {len(apk_tasks)} 个样本")
+    
+    # 初始化
+    detector = SmartDetector(RULES_PATH)
     report_data = []
-    stats = {"Packed": 0, "Native": 0, "Framework": 0, "Mod": 0, "Error": 0}
+    
+    stats = {"YES": 0, "NO": 0}
+
+    print("-" * 110)
+    print(f"{'有壳?':<6} | {'类型':<10} | {'详情':<50} | {'文件名'}")
+    print("-" * 110)
 
     for idx, apk_path in enumerate(apk_tasks, 1):
         file_name = os.path.basename(apk_path)
         category = os.path.relpath(os.path.dirname(apk_path), APK_DIR)
         
-        res_type, res_info = scanner.scan(apk_path)
+        # 执行检测
+        has_shell, res_type, reason = detector.check(apk_path)
         
-        if res_type in stats: stats[res_type] += 1
-        else: stats["Native"] += 1
-
-        print(f"[{idx}] {file_name[:35]:<35} | {res_type[:12]:<12} | {res_info}")
+        stats[has_shell] += 1
+        
+        print(f"{has_shell:<6} | {res_type:<10} | {reason[:50]:<50} | {file_name}")
 
         report_data.append({
-            "Category": category,
             "File Name": file_name,
-            "Type": res_type,
-            "Details": res_info
+            "Category": category,
+            "Has_Shell": has_shell,  # 关键列
+            "Type": res_type,        # Packed/Mod/Framework/Native
+            "Details": reason,
+            "Full Path": apk_path
         })
 
     try:
         os.makedirs(os.path.dirname(OUTPUT_CSV), exist_ok=True)
         with open(OUTPUT_CSV, mode='w', newline='', encoding='utf-8-sig') as f:
-            writer = csv.DictWriter(f, fieldnames=["Category", "File Name", "Type", "Details"])
+            fieldnames = ["File Name", "Category", "Has_Shell", "Type", "Details", "Full Path"]
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(report_data)
-        print(f"\n[报告] {OUTPUT_CSV}")
-    except: pass
-
-    print(f"统计: 壳:{stats['Packed']} | 挂:{stats['Mod']} | 框架:{stats['Framework']} | 原生:{stats['Native']}")
+        
+        print("-" * 110)
+        print(f"✅ 统计: 有壳(YES): {stats['YES']} | 无壳(NO): {stats['NO']}")
+        print(f"📄 报告: {OUTPUT_CSV}")
+    except Exception as e:
+        print(f"CSV Error: {e}")
